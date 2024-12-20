@@ -14,12 +14,9 @@
 void initializeDebugSerial(
     int debugSerial = DEFAULT_DEBUG_SERIAL,
     size_t queueSize = DEFAULT_SERIAL_QUEUE_SIZE,
-    size_t messageLength = DEFAULT_SERIAL_MESSAGE_MAX_LENGTH
-);
+    size_t messageLength = DEFAULT_SERIAL_MESSAGE_MAX_LENGTH);
 
 void dlog(const char *format, ...);
-
-// Sobrecargas para diferentes tipos de dados
 void dlog(int value);
 void dlog(unsigned int value);
 void dlog(long value);
@@ -28,9 +25,7 @@ void dlog(float value);
 void dlog(double value);
 void dlog(bool value);
 void dlog(char value);
-//void dlog(const char *value); // Remove esta sobrecarga
 void dlog(float value, int decimalPlaces);
-
 void dlog(const String &value);
 
 #endif // DEBUG_SERIAL_H
