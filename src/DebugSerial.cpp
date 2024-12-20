@@ -101,6 +101,18 @@ void dlog(const char *value) {
 }
 */
 
+void dlog(float value, int decimalPlaces) {
+    // Cria um buffer para armazenar o valor formatado
+    char buffer[DEFAULT_SERIAL_MESSAGE_MAX_LENGTH];
+    
+    // Formata o valor de ponto flutuante com o número de casas decimais desejado
+    snprintf(buffer, sizeof(buffer), "%.*f", decimalPlaces, value);
+
+    // Envia o valor formatado para a sobrecarga existente
+    dlog(buffer);
+}
+
+
 void dlog(const String &value) {
     dlog("Valor: %s", value.c_str());
 }
