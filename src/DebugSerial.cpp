@@ -10,16 +10,20 @@ struct DebugMessage
     char *message;
 };
 
+
+/*************  ✨ Codeium Command ⭐  *************/
 /**
- * @brief Handles serial output of debug messages in a separate task.
+ * @brief Task responsável por imprimir na serial as mensagens enfileiradas
  *
- * This function runs indefinitely and waits for messages to be posted
- * to the serial queue. When a message is received, it is printed to the
- * serial console and the task waits for the next message. The time taken
- * to process the message and the number of pending messages in the queue
- * are printed after each message. The dynamically allocated memory for
- * the message is freed after it is processed.
+ * Essa task é responsável por imprimir na serial as mensagens enfileiradas em
+ * serialQueue. Ela permanece em loop infinito, aguardando mensagens na fila,
+ * e as imprime na serial. Além disso, ela também imprime o tempo gasto para
+ * imprimir a mensagem e o número de mensagens pendentes na fila.
+ *
+ * @param pvParameters parâmetro padrão de tasks do FreeRTOS, não é utilizado
+ * aqui.
  */
+/******  2ea176b8-93f6-4caa-a1cf-eb8d7ec18639  *******/
 static void serialTask(void *pvParameters)
 {
     DebugMessage debugMessage;
@@ -29,12 +33,21 @@ static void serialTask(void *pvParameters)
         if (xQueueReceive(serialQueue, &debugMessage, portMAX_DELAY))
         {
             unsigned long inicio = micros();
-            Serial.print(debugMessage.message);
-            unsigned long fim = micros();
-            unsigned long tempoGasto = fim - inicio;
-            size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
+            // Verifica se a mensagem é vazia ou contém apenas espaço
+            if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+            {
+                Serial.println(); // Apenas pula uma linha
+            }
+            else
+            {
+                unsigned long inicio = micros();
+                Serial.print(debugMessage.message);
+                unsigned long fim = micros();
+                unsigned long tempoGasto = fim - inicio;
+                size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
 
-            Serial.printf(" [%lu µs | Pendentes: %d]\n", tempoGasto, mensagensPendentes);
+                Serial.printf(" [%lu µs | Pendentes: %d]\n", tempoGasto, mensagensPendentes);
+            }
 
             delete[] debugMessage.message; // Libera memória alocada dinamicamente
         }
