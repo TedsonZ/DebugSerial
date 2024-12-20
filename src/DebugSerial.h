@@ -28,7 +28,7 @@ void dlog(float value);
 void dlog(double value);
 void dlog(bool value);
 void dlog(char value);
-void dlog(const char *value);
+//void dlog(const char *value); // Remove esta sobrecarga
 void dlog(const String &value);
 
 #endif // DEBUG_SERIAL_H

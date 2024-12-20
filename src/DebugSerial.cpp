@@ -94,10 +94,12 @@ void dlog(bool value) {
 void dlog(char value) {
     dlog("Valor: %c", value);
 }
-
+/*
+// Remova a implementação redundante
 void dlog(const char *value) {
     dlog("Valor: %s", value);
 }
+*/
 
 void dlog(const String &value) {
     dlog("Valor: %s", value.c_str());
