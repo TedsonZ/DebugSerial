@@ -10,8 +10,6 @@ struct DebugMessage
     char *message;
 };
 
-
-/*************  ✨ Codeium Command ⭐  *************/
 /**
  * @brief Task responsável por imprimir na serial as mensagens enfileiradas
  *
@@ -23,7 +21,6 @@ struct DebugMessage
  * @param pvParameters parâmetro padrão de tasks do FreeRTOS, não é utilizado
  * aqui.
  */
-/******  2ea176b8-93f6-4caa-a1cf-eb8d7ec18639  *******/
 static void serialTask(void *pvParameters)
 {
     DebugMessage debugMessage;
@@ -82,6 +79,62 @@ void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMes
         }
         xTaskCreate(serialTask, "SerialTask", 2048, NULL, 1, NULL);
         Serial.println("Debug Serial inicializado.");
+    }
+}
+
+// Declarações adicionais para Serial2
+static QueueHandle_t serial2Queue;
+static int debugEnabledSerial2 = DEFAULT_DEBUG_SERIAL2;
+
+struct DebugMessage2
+{
+    char *message;
+};
+
+// Task para Serial2
+static void serial2Task(void *pvParameters)
+{
+    DebugMessage2 debugMessage;
+
+    while (true)
+    {
+        if (xQueueReceive(serial2Queue, &debugMessage, portMAX_DELAY))
+        {
+            unsigned long inicio = micros();
+            if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+            {
+                Serial2.println();
+            }
+            else
+            {
+                Serial2.print(debugMessage.message);
+                unsigned long fim = micros();
+                unsigned long tempoGasto = fim - inicio;
+                size_t mensagensPendentes = uxQueueMessagesWaiting(serial2Queue);
+
+                Serial2.printf(" [%lu µs | Pendentes: %d]\n", tempoGasto, mensagensPendentes);
+            }
+
+            delete[] debugMessage.message;
+        }
+    }
+}
+
+// Inicializar Serial2 Debug
+void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLength)
+{
+    debugEnabledSerial2 = debugSerial;
+
+    if (debugEnabledSerial2)
+    {
+        serial2Queue = xQueueCreate(queueSize, sizeof(DebugMessage2));
+        if (serial2Queue == NULL)
+        {
+            Serial.println("Erro ao criar fila para Serial2.");
+            return;
+        }
+        xTaskCreate(serial2Task, "Serial2Task", 2048, NULL, 1, NULL);
+        Serial2.println("Debug Serial2 inicializado.");
     }
 }
 
@@ -234,4 +287,79 @@ void dlog(float value, int decimalPlaces)
 void dlog(const String &value)
 {
     dlog("Valor: %s", value.c_str());
+}
+
+void dlog2(const char *format, ...)
+{
+    if (!debugEnabledSerial2)
+        return;
+
+    DebugMessage2 debugMessage;
+    debugMessage.message = new char[DEFAULT_SERIAL_MESSAGE_MAX_LENGTH];
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(debugMessage.message, DEFAULT_SERIAL_MESSAGE_MAX_LENGTH, format, args);
+    va_end(args);
+
+    if (serial2Queue != NULL)
+    {
+        if (xQueueSendToBack(serial2Queue, &debugMessage, pdMS_TO_TICKS(100)) != pdPASS)
+        {
+            Serial2.println("Fila de debug Serial2 cheia. Mensagem descartada.");
+            delete[] debugMessage.message;
+        }
+    }
+}
+
+void dlog2(int value)
+{
+    dlog2("Valor: %d", value);
+}
+
+void dlog2(unsigned int value)
+{
+    dlog2("Valor: %u", value);
+}
+
+void dlog2(long value)
+{
+    dlog2("Valor: %ld", value);
+}
+
+void dlog2(unsigned long value)
+{
+    dlog2("Valor: %lu", value);
+}
+
+void dlog2(float value)
+{
+    dlog2("Valor: %.2f", value);
+}
+
+void dlog2(double value)
+{
+    dlog2("Valor: %.4lf", value);
+}
+
+void dlog2(bool value)
+{
+    dlog2("Valor: %s", value ? "true" : "false");
+}
+
+void dlog2(char value)
+{
+    dlog2("Valor: %c", value);
+}
+
+void dlog2(float value, int decimalPlaces)
+{
+    char buffer[DEFAULT_SERIAL_MESSAGE_MAX_LENGTH];
+    snprintf(buffer, sizeof(buffer), "%.*f", decimalPlaces, value);
+    dlog2(buffer);
+}
+
+void dlog2(const String &value)
+{
+    dlog2("Valor: %s", value.c_str());
 }
