@@ -5,6 +5,11 @@ static int debugEnabled = DEFAULT_DEBUG_SERIAL;
 static size_t queueSize = DEFAULT_DEBUG_SERIAL_QUEUE_SIZE;
 static size_t messageLength = DEFAULT_DEBUG_SERIAL_MESSAGE_MAX_LENGTH;
 
+static QueueHandle_t serial2Queue;
+static int debugEnabledSerial2 = DEFAULT_DEBUG_SERIAL2;
+static size_t queue2Size = DEFAULT_DEBUG_SERIAL2_QUEUE_SIZE;
+static size_t message2Length = DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH;
+
 struct DebugMessage
 {
     char *message;
@@ -41,6 +46,37 @@ static void serialTask(void *pvParameters)
     }
 }
 
+static void serial2Task(void *pvParameters)
+{
+    DebugMessage debugMessage;
+
+    while (true)
+    {
+        if (xQueueReceive(serial2Queue, &debugMessage, portMAX_DELAY))
+        {
+            if (debugMessage.message != nullptr)
+            {
+                unsigned long inicio = micros();
+                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+                {
+                    Serial2.println();
+                }
+                else
+                {
+                    Serial2.print(debugMessage.message);
+                    unsigned long fim = micros();
+                    unsigned long tempoGasto = fim - inicio;
+                    size_t mensagensPendentes = uxQueueMessagesWaiting(serial2Queue);
+
+                    Serial2.printf(" [%lu µs | Pendentes: %d]\n", tempoGasto, mensagensPendentes);
+                }
+
+                delete[] debugMessage.message;
+            }
+        }
+    }
+}
+
 void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMessageLength)
 {
     debugEnabled = debugSerial;
@@ -60,6 +96,25 @@ void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMes
     }
 }
 
+void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLength)
+{
+    debugEnabledSerial2 = debugSerial;
+    queue2Size = queueSize;
+    message2Length = messageLength > 0 ? messageLength : DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH;
+
+    if (debugEnabledSerial2)
+    {
+        serial2Queue = xQueueCreate(queueSize, sizeof(DebugMessage));
+        if (serial2Queue == NULL)
+        {
+            Serial.println("Erro ao criar fila para Serial2.");
+            return;
+        }
+        xTaskCreate(serial2Task, "Serial2Task", 2048, NULL, 1, NULL);
+        Serial2.println("Debug Serial2 inicializado.");
+    }
+}
+
 void dlog(const char *format, ...)
 {
     if (!debugEnabled)
@@ -74,9 +129,17 @@ void dlog(const char *format, ...)
         return;
     }
 
-    char caller[32]; // Expandindo para suportar nomes de função maiores
-    strncpy(caller, __FUNCTION__, sizeof(caller) - 1);
-    caller[sizeof(caller) - 1] = '\0';
+    // Obter o nome da tarefa atual
+    const char *taskName = pcTaskGetName(NULL);
+    if (taskName == nullptr)
+    {
+        taskName = "Unknown";
+    }
+
+    // Limitar o nome da tarefa a 15 caracteres
+    char caller[16];
+    strncpy(caller, taskName, 15);
+    caller[15] = '\0';
 
     unsigned long timestamp = micros();
 
@@ -107,6 +170,62 @@ void dlog(const char *format, ...)
     }
 }
 
+void dlog2(const char *format, ...)
+{
+    if (!debugEnabledSerial2)
+        return;
+
+    DebugMessage debugMessage;
+    debugMessage.message = new char[message2Length];
+
+    if (debugMessage.message == nullptr)
+    {
+        Serial2.println("Erro ao alocar memória para mensagem de log.");
+        return;
+    }
+
+    // Obter o nome da tarefa atual
+    const char *taskName = pcTaskGetName(NULL);
+    if (taskName == nullptr)
+    {
+        taskName = "Unknown";
+    }
+
+    // Limitar o nome da tarefa a 15 caracteres
+    char caller[16];
+    strncpy(caller, taskName, 15);
+    caller[15] = '\0';
+
+    unsigned long timestamp = micros();
+
+    char formattedMessage[message2Length];
+    int snprintfResult = snprintf(formattedMessage, message2Length, "[%lu] [%s] ", timestamp, caller);
+    if (snprintfResult < 0 || snprintfResult >= message2Length)
+    {
+        Serial2.println("Erro ao formatar a mensagem inicial de log.");
+        delete[] debugMessage.message;
+        return;
+    }
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(formattedMessage + strlen(formattedMessage), message2Length - strlen(formattedMessage), format, args);
+    va_end(args);
+
+    strncpy(debugMessage.message, formattedMessage, message2Length - 1);
+    debugMessage.message[message2Length - 1] = '\0';
+
+    if (serial2Queue != NULL)
+    {
+        if (xQueueSendToBack(serial2Queue, &debugMessage, pdMS_TO_TICKS(100)) != pdPASS)
+        {
+            Serial2.println("Fila de debug Serial2 cheia. Mensagem descartada.");
+            delete[] debugMessage.message;
+        }
+    }
+}
+
+// Sobrecargas para dlog e dlog2
 void dlog(int value)
 {
     dlog("Valor: %d", value);
@@ -157,113 +276,6 @@ void dlog(float value, int decimalPlaces)
 void dlog(const String &value)
 {
     dlog("Valor: %s", value.c_str());
-}
-
-static QueueHandle_t serial2Queue;
-static int debugEnabledSerial2 = DEFAULT_DEBUG_SERIAL2;
-static size_t queue2Size = DEFAULT_DEBUG_SERIAL2_QUEUE_SIZE;
-static size_t message2Length = DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH;
-
-struct DebugMessage2
-{
-    char *message;
-};
-
-static void serial2Task(void *pvParameters)
-{
-    DebugMessage2 debugMessage;
-
-    while (true)
-    {
-        if (xQueueReceive(serial2Queue, &debugMessage, portMAX_DELAY))
-        {
-            if (debugMessage.message != nullptr)
-            {
-                unsigned long inicio = micros();
-                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
-                {
-                    Serial2.println();
-                }
-                else
-                {
-                    Serial2.print(debugMessage.message);
-                    unsigned long fim = micros();
-                    unsigned long tempoGasto = fim - inicio;
-                    size_t mensagensPendentes = uxQueueMessagesWaiting(serial2Queue);
-
-                    Serial2.printf(" [%lu µs | Pendentes: %d]\n", tempoGasto, mensagensPendentes);
-                }
-
-                delete[] debugMessage.message;
-            }
-        }
-    }
-}
-
-void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLength)
-{
-    debugEnabledSerial2 = debugSerial;
-    queue2Size = queueSize;
-    message2Length = messageLength > 0 ? messageLength : DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH;
-
-    if (debugEnabledSerial2)
-    {
-        serial2Queue = xQueueCreate(queueSize, sizeof(DebugMessage2));
-        if (serial2Queue == NULL)
-        {
-            Serial.println("Erro ao criar fila para Serial2.");
-            return;
-        }
-        xTaskCreate(serial2Task, "Serial2Task", 2048, NULL, 1, NULL);
-        Serial2.println("Debug Serial2 inicializado.");
-    }
-}
-
-void dlog2(const char *format, ...)
-{
-    if (!debugEnabledSerial2)
-        return;
-
-    DebugMessage2 debugMessage;
-    debugMessage.message = new char[message2Length];
-
-    if (debugMessage.message == nullptr)
-    {
-        Serial2.println("Erro ao alocar memória para mensagem de log.");
-        return;
-    }
-
-    char caller[32]; // Expandindo para suportar nomes de função maiores
-    strncpy(caller, __FUNCTION__, sizeof(caller) - 1);
-    caller[sizeof(caller) - 1] = '\0';
-
-    unsigned long timestamp = micros();
-
-    char formattedMessage[message2Length];
-    int snprintfResult = snprintf(formattedMessage, message2Length, "[%lu] [%s] ", timestamp, caller);
-    if (snprintfResult < 0 || snprintfResult >= message2Length)
-    {
-        Serial2.println("Erro ao formatar a mensagem inicial de log.");
-        delete[] debugMessage.message;
-        return;
-    }
-
-    va_list args;
-    va_start(args, format);
-    vsnprintf(formattedMessage + strlen(formattedMessage), message2Length - strlen(formattedMessage), format, args);
-    va_end(args);
-
-    strncpy(debugMessage.message, formattedMessage, message2Length - 1);
-    debugMessage.message[message2Length - 1] = '\0';
-
-    if (serial2Queue != NULL)
-    {
-        if (xQueueSendToBack(serial2Queue, &debugMessage, pdMS_TO_TICKS(100)) != pdPASS)
-        {
-            Serial2.println("Fila de debug Serial2 cheia. Mensagem descartada.");
-            delete[] debugMessage.message;
-        }
-    }
 }
 
 void dlog2(int value)
