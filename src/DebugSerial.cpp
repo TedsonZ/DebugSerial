@@ -37,7 +37,7 @@ static void serialTask(void *pvParameters)
                     unsigned long tempoGasto = fim - inicio;
                     size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
 
-                    Serial.printf(" [%lu µs | Pendentes: %d]\n", tempoGasto, mensagensPendentes);
+                    Serial.printf(";%lu;µs;%d;filaUART\n", tempoGasto, mensagensPendentes);
                 }
 
                 delete[] debugMessage.message;
@@ -91,7 +91,7 @@ void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMes
             Serial.println("Erro ao criar fila para Serial.");
             return;
         }
-        xTaskCreate(serialTask, "SerialTask", 2048, NULL, 1, NULL);
+        xTaskCreate(serialTask, "SerialTask", 5048, NULL, 1, NULL);
         Serial.println("Debug Serial inicializado.");
     }
 }
@@ -110,7 +110,7 @@ void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLen
             Serial.println("Erro ao criar fila para Serial2.");
             return;
         }
-        xTaskCreate(serial2Task, "Serial2Task", 2048, NULL, 1, NULL);
+        xTaskCreate(serial2Task, "Serial2Task", 5048, NULL, 1, NULL);
         Serial2.println("Debug Serial2 inicializado.");
     }
 }
