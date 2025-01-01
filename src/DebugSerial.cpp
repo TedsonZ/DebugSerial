@@ -129,14 +129,12 @@ void dlog(const char *format, ...)
         return;
     }
 
-    // Obter o nome da tarefa atual
     const char *taskName = pcTaskGetName(NULL);
     if (taskName == nullptr)
     {
         taskName = "Unknown";
     }
 
-    // Limitar o nome da tarefa a 15 caracteres
     char caller[16];
     strncpy(caller, taskName, 15);
     caller[15] = '\0';
@@ -144,20 +142,24 @@ void dlog(const char *format, ...)
     unsigned long timestamp = micros();
 
     char formattedMessage[messageLength];
-    int snprintfResult = snprintf(formattedMessage, messageLength, "[%lu] [%s] ", timestamp, caller);
-    if (snprintfResult < 0 || snprintfResult >= messageLength)
-    {
-        Serial.println("Erro ao formatar a mensagem inicial de log.");
-        delete[] debugMessage.message;
-        return;
-    }
+    formattedMessage[0] = '\0';
 
     va_list args;
     va_start(args, format);
-    vsnprintf(formattedMessage + strlen(formattedMessage), messageLength - strlen(formattedMessage), format, args);
+    vsnprintf(formattedMessage, messageLength, format, args);
     va_end(args);
 
-    strncpy(debugMessage.message, formattedMessage, messageLength - 1);
+    if (strlen(formattedMessage) == 0)
+    {
+        snprintf(debugMessage.message, messageLength, "\n");
+    }
+    else
+    {
+        char temp[messageLength];
+        snprintf(temp, messageLength, "%lu;%s;%s", timestamp, caller, formattedMessage);
+        strncpy(debugMessage.message, temp, messageLength - 1);
+    }
+
     debugMessage.message[messageLength - 1] = '\0';
 
     if (serialQueue != NULL)
@@ -167,6 +169,11 @@ void dlog(const char *format, ...)
             Serial.println("Fila de debug cheia. Mensagem descartada.");
             delete[] debugMessage.message;
         }
+    }
+    else
+    {
+        delete[] debugMessage.message;
+        Serial.println("serialQueue não está inicializado.");
     }
 }
 
