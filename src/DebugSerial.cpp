@@ -12,7 +12,10 @@ static size_t message2Length = DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH;
 
 struct DebugMessage
 {
-    char *message;
+    char *message;         // Usado para strings
+    bool isBinary = false; // Indica se a mensagem é binária
+    const void *data;      // Ponteiro para dados binários
+    size_t size;           // Tamanho dos dados binários
 };
 
 static void serialTask(void *pvParameters)
@@ -48,30 +51,38 @@ static void serialTask(void *pvParameters)
 
 static void serial2Task(void *pvParameters)
 {
-    DebugMessage debugMessage;
-
     while (true)
     {
-        if (xQueueReceive(serial2Queue, &debugMessage, portMAX_DELAY))
+        if (uxQueueMessagesWaiting(serial2Queue) > 0)
         {
-            if (debugMessage.message != nullptr)
+            DebugMessage debugMessage;
+
+            if (xQueueReceive(serial2Queue, &debugMessage, portMAX_DELAY))
             {
-                unsigned long inicio = micros();
-                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+                if (debugMessage.message != nullptr)
                 {
-                    Serial2.println();
-                }
-                else
-                {
-                    Serial2.print(debugMessage.message);
-                    unsigned long fim = micros();
-                    unsigned long tempoGasto = fim - inicio;
-                    size_t mensagensPendentes = uxQueueMessagesWaiting(serial2Queue);
+                    // Verifique se a mensagem é binária
+                    if (debugMessage.isBinary)
+                    {
+                        Serial2.write(static_cast<const uint8_t *>(debugMessage.data), debugMessage.size);
+                    }
+                    else
+                    {
+                        unsigned long inicio = micros();
+                        if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+                        {
+                            Serial2.println();
+                        }
+                        else
+                        {
+                            Serial2.print(debugMessage.message);
+                        }
+                        unsigned long fim = micros();
+                        Serial2.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
+                    }
 
-                    Serial2.printf(" [%lu µs | Pendentes: %d]\n", tempoGasto, mensagensPendentes);
+                    delete[] debugMessage.message;
                 }
-
-                delete[] debugMessage.message;
             }
         }
     }
@@ -335,4 +346,26 @@ void dlog2(float value, int decimalPlaces)
 void dlog2(const String &value)
 {
     dlog2("Valor: %s", value.c_str());
+}
+
+void dlog2Binary(const void *data, size_t dataSize)
+{
+    if (!debugEnabledSerial2 || data == nullptr || dataSize == 0)
+        return;
+
+    struct BinaryDebugMessage
+    {
+        const void *data;
+        size_t size;
+    };
+
+    BinaryDebugMessage debugMessage = {data, dataSize};
+
+    if (serial2Queue != NULL)
+    {
+        if (xQueueSendToBack(serial2Queue, &debugMessage, pdMS_TO_TICKS(100)) != pdPASS)
+        {
+            Serial2.println("Fila de debug Serial2 cheia. Mensagem binária descartada.");
+        }
+    }
 }
