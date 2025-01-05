@@ -18,6 +18,32 @@ struct DebugMessage
     size_t size;           // Tamanho dos dados binários
 };
 
+// Função para enviar estruturas pela Serial2
+template <typename T>
+void dlog2Struct(const T &data)
+{
+    if (!debugEnabledSerial2)
+        return;
+
+    // Serializar a estrutura em um buffer de bytes
+    const size_t dataSize = sizeof(T);
+    if (dataSize > message2Length)
+    {
+        Serial2.println("Erro: Tamanho da estrutura excede o limite de mensagem.");
+        return;
+    }
+
+    uint8_t buffer[dataSize];
+    memcpy(buffer, &data, dataSize);
+
+    // Enviar os bytes pela Serial2
+    for (size_t i = 0; i < dataSize; ++i)
+    {
+        Serial2.write(buffer[i]);
+    }
+    Serial2.println();
+}
+
 static void serialTask(void *pvParameters)
 {
     DebugMessage debugMessage;
