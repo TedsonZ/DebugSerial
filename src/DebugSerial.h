@@ -55,6 +55,28 @@ void dlog2(const String &value);
 void dlog2Binary(const void *data, size_t dataSize);
 
 template <typename T>
-void dlog2Struct(const T &data);
+void dlog2Struct(const T &data)
+{
+    if (!DEFAULT_DEBUG_SERIAL2)
+        return;
+
+    // Serializar a estrutura em um buffer de bytes
+    const size_t dataSize = sizeof(T);
+    if (dataSize > DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH)
+    {
+        Serial2.println("Erro: Tamanho da estrutura excede o limite de mensagem.");
+        return;
+    }
+
+    uint8_t buffer[dataSize];
+    memcpy(buffer, &data, dataSize);
+
+    // Enviar os bytes pela Serial2
+    for (size_t i = 0; i < dataSize; ++i)
+    {
+        Serial2.write(buffer[i]);
+    }
+    Serial2.println();
+}
 
 #endif // DEBUG_SERIAL_H
