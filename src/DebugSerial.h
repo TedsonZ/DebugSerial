@@ -54,4 +54,7 @@ void dlog2(float value, int decimalPlaces);
 void dlog2(const String &value);
 void dlog2Binary(const void *data, size_t dataSize);
 
+template <typename T>
+void dlog2Struct(const T &data);
+
 #endif // DEBUG_SERIAL_H
