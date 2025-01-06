@@ -76,5 +76,14 @@ void dlog2Struct(const T &data)
     // Enviar os bytes pela Serial2
     Serial2.write(buffer, dataSize + 2);
 }
+// Inicialização da tarefa de recepção da Serial2
+void initializeSerial2ReceptionTask(size_t queueSize, size_t bufferSize);
+
+// Função para obter dados da fila de recepção
+bool getSerial2Struct(void *data, size_t dataSize, TickType_t timeout);
+
+// Função da tarefa de recepção (internamente usada pela inicialização)
+void serial2ReceptionTask(void *pvParameters);
+
 
 #endif // DEBUG_SERIAL_H

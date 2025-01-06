@@ -18,6 +18,101 @@ struct DebugMessage
     size_t size;           // Tamanho dos dados binários
 };
 
+// Fila para armazenar os dados recebidos da Serial2
+static QueueHandle_t serial2ReceptionQueue;
+
+// Função de tarefa para processar dados da Serial2
+void serial2ReceptionTask(void *pvParameters)
+{
+    static bool inSync = false;
+    static uint8_t buffer[256];
+    static size_t bytesReceived = 0;
+
+    while (true)
+    {
+        while (Serial2.available() > 0)
+        {
+            uint8_t byte = Serial2.read();
+
+            if (byte == 0x7E) // Marcador de início
+            {
+                inSync = true;
+                bytesReceived = 0;
+                dlog2("Marcador de início detectado.");
+                continue;
+            }
+
+            if (byte == 0x7F) // Marcador de fim
+            {
+                if (bytesReceived > 0)
+                {
+                    // Enviar os dados para a fila
+                    if (xQueueSendToBack(serial2ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
+                    {
+                        dlog2("Fila cheia. Mensagem descartada.");
+                    }
+                    else
+                    {
+                        dlog2("Mensagem armazenada na fila.");
+                    }
+                }
+                else
+                {
+                    dlog2("Nenhum dado recebido antes do marcador de fim.");
+                }
+                inSync = false;
+                continue;
+            }
+
+            if (inSync)
+            {
+                if (bytesReceived < sizeof(buffer))
+                {
+                    buffer[bytesReceived++] = byte;
+                }
+                else
+                {
+                    dlog2("Erro: Buffer cheio antes do marcador de fim.");
+                    inSync = false;
+                }
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+// Inicializa a tarefa de recepção da Serial2
+void initializeSerial2ReceptionTask(size_t queueSize, size_t bufferSize)
+{
+    serial2ReceptionQueue = xQueueCreate(queueSize, bufferSize);
+    if (serial2ReceptionQueue == NULL)
+    {
+        dlog2("Erro ao criar fila para recepção da Serial2.");
+        return;
+    }
+
+    // Criar a tarefa de recepção
+    xTaskCreate(serial2ReceptionTask, "Serial2ReceptionTask", 4096, NULL, 1, NULL);
+    dlog2("Tarefa de recepção da Serial2 inicializada.");
+}
+
+// Obtém dados estruturados da fila de recepção
+bool getSerial2Struct(void *data, size_t dataSize, TickType_t timeout)
+{
+    if (serial2ReceptionQueue == NULL)
+        return false;
+
+    uint8_t buffer[dataSize];
+    if (xQueueReceive(serial2ReceptionQueue, buffer, timeout) == pdPASS)
+    {
+        memcpy(data, buffer, dataSize);
+        return true;
+    }
+
+    return false;
+}
+
 static void serialTask(void *pvParameters)
 {
     DebugMessage debugMessage;
