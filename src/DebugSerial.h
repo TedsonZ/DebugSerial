@@ -68,15 +68,13 @@ void dlog2Struct(const T &data)
         return;
     }
 
-    uint8_t buffer[dataSize];
-    memcpy(buffer, &data, dataSize);
+    uint8_t buffer[dataSize + 2]; // Inclui espaço para header e terminador
+    buffer[0] = 0x7E; // Header (marcador de início)
+    memcpy(&buffer[1], &data, dataSize);
+    buffer[dataSize + 1] = 0x7F; // Terminador (marcador de fim)
 
     // Enviar os bytes pela Serial2
-    for (size_t i = 0; i < dataSize; ++i)
-    {
-        Serial2.write(buffer[i]);
-    }
-    Serial2.println();
+    Serial2.write(buffer, dataSize + 2);
 }
 
 #endif // DEBUG_SERIAL_H
