@@ -42,30 +42,31 @@ void serial2ReceptionTask(void *pvParameters)
                 continue;
             }
 
-            if (byte == 0x7F) // Marcador de fim
+            if (inSync)
             {
-                if (bytesReceived > 0)
+                if (byte == 0x7F) // Marcador de fim
                 {
-                    // Enviar os dados para a fila
-                    if (xQueueSendToBack(serial2ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
+                    if (bytesReceived > 0)
                     {
-                        dlog2("Fila cheia. Mensagem descartada.");
+                        // Enviar os dados para a fila
+                        if (xQueueSendToBack(serial2ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
+                        {
+                            dlog2("Fila cheia. Mensagem descartada.");
+                        }
+                        else
+                        {
+                            dlog2("Mensagem armazenada na fila.");
+                        }
                     }
                     else
                     {
-                        dlog2("Mensagem armazenada na fila.");
+                        dlog2("Nenhum dado recebido antes do marcador de fim.");
                     }
+                    inSync = false;
+                    continue;
                 }
-                else
-                {
-                    dlog2("Nenhum dado recebido antes do marcador de fim.");
-                }
-                inSync = false;
-                continue;
-            }
 
-            if (inSync)
-            {
+                // Gravar o byte no buffer se não for o terminador
                 if (bytesReceived < sizeof(buffer))
                 {
                     buffer[bytesReceived++] = byte;
