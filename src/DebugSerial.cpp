@@ -298,14 +298,12 @@ void dlog2(const char *format, ...)
         return;
     }
 
-    // Obter o nome da tarefa atual
     const char *taskName = pcTaskGetName(NULL);
     if (taskName == nullptr)
     {
         taskName = "Unknown";
     }
 
-    // Limitar o nome da tarefa a 15 caracteres
     char caller[16];
     strncpy(caller, taskName, 15);
     caller[15] = '\0';
@@ -337,7 +335,13 @@ void dlog2(const char *format, ...)
             delete[] debugMessage.message;
         }
     }
+    else
+    {
+        Serial2.println("Fila de debug Serial2 não inicializada. Mensagem descartada.");
+        delete[] debugMessage.message; // Garantir que a memória é liberada.
+    }
 }
+
 
 // Sobrecargas para dlog e dlog2
 void dlog(int value)
