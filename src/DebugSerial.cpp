@@ -49,6 +49,10 @@ void serial2ReceptionTask(void *pvParameters)
                     if (bytesReceived > 0)
                     {
                         // Enviar os dados para a fila
+                        char message[50];
+                        snprintf(message, sizeof(message), "Tamanho da mensagem: %zu bytes", bytesReceived);
+                        dlog2(message);
+
                         if (xQueueSendToBack(serial2ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
                         {
                             dlog2("Fila cheia. Mensagem descartada.");
@@ -57,6 +61,8 @@ void serial2ReceptionTask(void *pvParameters)
                         {
                             dlog2("Mensagem armazenada na fila.");
                         }
+                        memset(buffer, 0, sizeof(buffer));
+                        bytesReceived = 0;
                     }
                     else
                     {
@@ -341,7 +347,6 @@ void dlog2(const char *format, ...)
         delete[] debugMessage.message; // Garantir que a memória é liberada.
     }
 }
-
 
 // Sobrecargas para dlog e dlog2
 void dlog(int value)
