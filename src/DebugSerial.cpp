@@ -178,7 +178,7 @@ static void serial2Task(void *pvParameters)
                         }
                         // unsigned long fim = micros();
                         // Serial2.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
-                        Serial2.printf();
+                        Serial2.printf("");
                     }
 
                     delete[] debugMessage.message;
