@@ -127,7 +127,7 @@ static void serialTask(void *pvParameters)
             if (debugMessage.message != nullptr)
             {
                 unsigned long inicio = micros();
-                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, "") == 0)
                 {
                     Serial.println();
                 }
