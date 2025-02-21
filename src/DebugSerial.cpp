@@ -46,7 +46,7 @@ void serial2ReceptionTask(void *pvParameters)
             {
                 if (byte == 0x7F) // Marcador de fim
                 {
-                    if (bytesReceived >= 122) //Tamanho lido do struct statusDeste 28/01/2025
+                    if (bytesReceived >= 122) // Tamanho lido do struct statusDeste 28/01/2025
                     {
                         // Enviar os dados para a fila
                         if (xQueueSendToBack(serial2ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
@@ -126,7 +126,7 @@ static void serialTask(void *pvParameters)
         {
             if (debugMessage.message != nullptr)
             {
-                //unsigned long inicio = micros();
+                // unsigned long inicio = micros();
                 if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, "") == 0)
                 {
                     Serial.println();
@@ -134,9 +134,9 @@ static void serialTask(void *pvParameters)
                 else
                 {
                     Serial.print(debugMessage.message);
-                    //unsigned long fim = micros();
-                    //unsigned long tempoGasto = fim - inicio;
-                    //size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
+                    // unsigned long fim = micros();
+                    // unsigned long tempoGasto = fim - inicio;
+                    // size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
                     Serial.println();
                 }
 
@@ -244,8 +244,17 @@ void dlog(const char *format, ...)
     }
 
     char caller[16];
-    strncpy(caller, taskName, 15);
-    caller[15] = '\0';
+    strncpy(caller, taskName, 15); // Copia até 15 caracteres de taskName
+    caller[15] = '\0';             // Garante que o último caractere seja o terminador de string
+
+    // Se taskName tiver menos que 15 caracteres, preenche o restante com espaços
+    if (strlen(taskName) < 15)
+    {
+        for (int i = strlen(taskName); i < 15; i++)
+        {
+            caller[i] = ' '; // Preenche com espaço
+        }
+    }
 
     unsigned long timestamp = micros();
 
