@@ -20,6 +20,7 @@ struct DebugMessage
 
 // Fila para armazenar os dados recebidos da Serial2
 static QueueHandle_t serial2ReceptionQueue;
+static QueueHandle_t serialQueue;
 
 // Função de tarefa para processar dados da Serial2
 void serial2ReceptionTask(void *pvParameters)
@@ -83,6 +84,40 @@ void serial2ReceptionTask(void *pvParameters)
 
         vTaskDelay(pdMS_TO_TICKS(10));
     }
+}
+bool getSerialData(char *buffer, size_t bufferSize)
+{
+    return xQueueReceive(serialQueue, buffer, 0) == pdPASS;
+}
+
+void serialReceptionTask(void *pvParameters)
+{
+    static char receivedData[128];
+    static size_t index = 0;
+    while (true)
+    {
+        while (Serial.available() > 0)
+        {
+            char c = Serial.read();
+            if (c == '\n' || index >= sizeof(receivedData) - 1) // Fim da linha ou buffer cheio
+            {
+                receivedData[index] = '\0';
+                xQueueSend(serialQueue, receivedData, portMAX_DELAY);
+                index = 0;
+            }
+            else
+            {
+                receivedData[index++] = c;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+void initializeSerialReceptionTask()
+{    
+    serialQueue = xQueueCreate(1, sizeof(char) * 32);
+    xTaskCreate(serialReceptionTask, "SerialReceptionTask", 4096, NULL, 1, NULL);
 }
 
 // Inicializa a tarefa de recepção da Serial2

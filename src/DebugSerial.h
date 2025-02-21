@@ -85,5 +85,10 @@ bool getSerial2Struct(void *data, size_t dataSize, TickType_t timeout);
 // Função da tarefa de recepção (internamente usada pela inicialização)
 void serial2ReceptionTask(void *pvParameters);
 
+extern QueueHandle_t serialQueue;
+
+void initializeSerialReceptionTask();
+bool getSerialData(char *buffer, size_t bufferSize);
+
 
 #endif // DEBUG_SERIAL_H
