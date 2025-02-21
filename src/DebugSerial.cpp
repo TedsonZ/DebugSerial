@@ -20,7 +20,7 @@ struct DebugMessage
 
 // Fila para armazenar os dados recebidos da Serial2
 static QueueHandle_t serial2ReceptionQueue;
-QueueHandle_t serialQueue;
+static QueueHandle_t serialQueue;
 
 // Função de tarefa para processar dados da Serial2
 void serial2ReceptionTask(void *pvParameters)
