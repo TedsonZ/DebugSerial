@@ -25,7 +25,7 @@ static QueueHandle_t serial2ReceptionQueue;
 void serial2ReceptionTask(void *pvParameters)
 {
     static bool inSync = false;
-    static uint8_t buffer[130]; // Tamanho máximo de dados recebidos ja que statusDeste tem 122 bytes
+    static uint8_t buffer[TAMANHO_DO_STRUCT + 10]; // Tamanho máximo de dados recebidos ja que statusDeste tem 122 bytes
     static size_t bytesReceived = 0;
 
     while (true)
@@ -38,7 +38,7 @@ void serial2ReceptionTask(void *pvParameters)
             {
                 inSync = true;
                 bytesReceived = 0;
-                dlog("Marcador de início detectado.");
+                // dlog("Marcador de início detectado.");
                 continue;
             }
 
@@ -46,7 +46,7 @@ void serial2ReceptionTask(void *pvParameters)
             {
                 if (byte == 0x7F) // Marcador de fim
                 {
-                    if (bytesReceived >= 122) //Tamanho lido do struct statusDeste 28/01/2025
+                    if (bytesReceived >= TAMANHO_DO_STRUCT) // Tamanho lido do struct statusDeste 28/01/2025
                     {
                         // Enviar os dados para a fila
                         if (xQueueSendToBack(serial2ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
@@ -127,18 +127,19 @@ static void serialTask(void *pvParameters)
             if (debugMessage.message != nullptr)
             {
                 unsigned long inicio = micros();
-                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, "") == 0)
                 {
                     Serial.println();
                 }
                 else
                 {
                     Serial.print(debugMessage.message);
-                    unsigned long fim = micros();
-                    unsigned long tempoGasto = fim - inicio;
-                    size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
+                    // unsigned long fim = micros();
+                    // unsigned long tempoGasto = fim - inicio;
+                    // size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
 
-                    Serial.printf(";%lu;µs;%d;filaUART\n", tempoGasto, mensagensPendentes);
+                    // Serial.printf(";%lu;µs;%d;filaUART\n", tempoGasto, mensagensPendentes);
+                    Serial.printf();
                 }
 
                 delete[] debugMessage.message;
@@ -166,7 +167,7 @@ static void serial2Task(void *pvParameters)
                     }
                     else
                     {
-                        unsigned long inicio = micros();
+                        // unsigned long inicio = micros();
                         if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
                         {
                             Serial2.println();
@@ -175,8 +176,9 @@ static void serial2Task(void *pvParameters)
                         {
                             Serial2.print(debugMessage.message);
                         }
-                        unsigned long fim = micros();
-                        Serial2.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
+                        // unsigned long fim = micros();
+                        // Serial2.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
+                        Serial2.printf();
                     }
 
                     delete[] debugMessage.message;
@@ -197,11 +199,11 @@ void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMes
         serialQueue = xQueueCreate(queueSize, sizeof(DebugMessage));
         if (serialQueue == NULL)
         {
-            Serial.println("Erro ao criar fila para Serial.");
+            //Serial.println("Erro ao criar fila para Serial.");
             return;
         }
         xTaskCreate(serialTask, "SerialTask", 5048, NULL, 1, NULL);
-        Serial.println("Debug Serial inicializado.");
+        //Serial.println("Debug Serial inicializado.");
     }
 }
 
@@ -216,11 +218,11 @@ void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLen
         serial2Queue = xQueueCreate(queueSize, sizeof(DebugMessage));
         if (serial2Queue == NULL)
         {
-            Serial.println("Erro ao criar fila para Serial2.");
+            //Serial.println("Erro ao criar fila para Serial2.");
             return;
         }
         xTaskCreate(serial2Task, "Serial2Task", 5048, NULL, 1, NULL);
-        Serial2.println("Debug Serial2 inicializado.");
+        //Serial2.println("Debug Serial2 inicializado.");
     }
 }
 
@@ -234,7 +236,7 @@ void dlog(const char *format, ...)
 
     if (debugMessage.message == nullptr)
     {
-        Serial.println("Erro ao alocar memória para mensagem de log.");
+        // Serial.println("Erro ao alocar memória para mensagem de log.");
         return;
     }
 
@@ -275,14 +277,14 @@ void dlog(const char *format, ...)
     {
         if (xQueueSendToBack(serialQueue, &debugMessage, pdMS_TO_TICKS(100)) != pdPASS)
         {
-            Serial.println("Fila de debug cheia. Mensagem descartada.");
+            // Serial.println("Fila de debug cheia. Mensagem descartada.");
             delete[] debugMessage.message;
         }
     }
     else
     {
         delete[] debugMessage.message;
-        Serial.println("serialQueue não está inicializado.");
+        //Serial.println("serialQueue não está inicializado.");
     }
 }
 
@@ -466,7 +468,7 @@ void dlog2Binary(const void *data, size_t dataSize)
     {
         if (xQueueSendToBack(serial2Queue, &debugMessage, pdMS_TO_TICKS(100)) != pdPASS)
         {
-            Serial2.println("Fila de debug Serial2 cheia. Mensagem binária descartada.");
+            // Serial2.println("Fila de debug Serial2 cheia. Mensagem binária descartada.");
         }
     }
 }

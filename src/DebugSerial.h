@@ -16,6 +16,8 @@
 #define DEFAULT_DEBUG_SERIAL2_QUEUE_SIZE 15
 #define DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH 256
 
+#define TAMANHO_DO_STRUCT 122 // Tamanho do struct statusDeste 28/01/2025
+
 // Funções de inicialização
 void initializeDebugSerial(
     int debugSerial = DEFAULT_DEBUG_SERIAL,
@@ -64,12 +66,12 @@ void dlog2Struct(const T &data)
     const size_t dataSize = sizeof(T);
     if (dataSize > DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH)
     {
-        Serial2.println("Erro: Tamanho da estrutura excede o limite de mensagem.");
+        // Serial2.println("Erro: Tamanho da estrutura excede o limite de mensagem.");
         return;
     }
 
     uint8_t buffer[dataSize + 2]; // Inclui espaço para header e terminador
-    buffer[0] = 0x7E; // Header (marcador de início)
+    buffer[0] = 0x7E;             // Header (marcador de início)
     memcpy(&buffer[1], &data, dataSize);
     buffer[dataSize + 1] = 0x7F; // Terminador (marcador de fim)
 
@@ -84,6 +86,5 @@ bool getSerial2Struct(void *data, size_t dataSize, TickType_t timeout);
 
 // Função da tarefa de recepção (internamente usada pela inicialização)
 void serial2ReceptionTask(void *pvParameters);
-
 
 #endif // DEBUG_SERIAL_H
