@@ -139,7 +139,7 @@ static void serialTask(void *pvParameters)
                     // size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
 
                     // Serial.printf(";%lu;µs;%d;filaUART\n", tempoGasto, mensagensPendentes);
-                    Serial.printf();
+                    Serial.printf("");
                 }
 
                 delete[] debugMessage.message;
