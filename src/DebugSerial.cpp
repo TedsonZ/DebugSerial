@@ -126,7 +126,7 @@ static void serialTask(void *pvParameters)
         {
             if (debugMessage.message != nullptr)
             {
-                unsigned long inicio = micros();
+                //unsigned long inicio = micros();
                 if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, "") == 0)
                 {
                     Serial.println();
@@ -134,11 +134,10 @@ static void serialTask(void *pvParameters)
                 else
                 {
                     Serial.print(debugMessage.message);
-                    unsigned long fim = micros();
-                    unsigned long tempoGasto = fim - inicio;
-                    size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
-
-                    //Serial.printf("\n");
+                    //unsigned long fim = micros();
+                    //unsigned long tempoGasto = fim - inicio;
+                    //size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
+                    Serial.println();
                 }
 
                 delete[] debugMessage.message;
