@@ -138,7 +138,7 @@ static void serialTask(void *pvParameters)
                     unsigned long tempoGasto = fim - inicio;
                     size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
 
-                    Serial.printf("\n");
+                    //Serial.printf("\n");
                 }
 
                 delete[] debugMessage.message;
