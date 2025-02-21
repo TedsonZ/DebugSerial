@@ -20,7 +20,7 @@ struct DebugMessage
 
 // Fila para armazenar os dados recebidos da Serial2
 static QueueHandle_t serial2ReceptionQueue;
-static QueueHandle_t serialQueue;
+static QueueHandle_t serialRecebmentoSerial1;
 
 // Função de tarefa para processar dados da Serial2
 void serial2ReceptionTask(void *pvParameters)
@@ -87,7 +87,7 @@ void serial2ReceptionTask(void *pvParameters)
 }
 bool getSerialData(char *buffer, size_t bufferSize)
 {
-    return xQueueReceive(serialQueue, buffer, 0) == pdPASS;
+    return xQueueReceive(serialRecebmentoSerial1, buffer, 0) == pdPASS;
 }
 
 void serialReceptionTask(void *pvParameters)
@@ -102,7 +102,7 @@ void serialReceptionTask(void *pvParameters)
             if (c == '\n' || index >= sizeof(receivedData) - 1) // Fim da linha ou buffer cheio
             {
                 receivedData[index] = '\0';
-                xQueueSend(serialQueue, receivedData, portMAX_DELAY);
+                xQueueSend(serialRecebmentoSerial1, receivedData, portMAX_DELAY);
                 index = 0;
             }
             else
@@ -116,7 +116,7 @@ void serialReceptionTask(void *pvParameters)
 
 void initializeSerialReceptionTask()
 {    
-    serialQueue = xQueueCreate(1, sizeof(char) * 32);
+    serialRecebmentoSerial1 = xQueueCreate(1, sizeof(char) * 32);
     xTaskCreate(serialReceptionTask, "SerialReceptionTask", 4096, NULL, 1, NULL);
 }
 
