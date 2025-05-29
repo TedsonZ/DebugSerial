@@ -220,7 +220,7 @@ static void serial2Task(void *pvParameters)
     }
 }
 
-void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMessageLength, size_t taskStackSize = 6048, UBaseType_t taskPriority = 1)
+void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMessageLength, size_t taskStackSize = 6048, int taskPriority = 1)
 {
     debugEnabled = debugSerial;
     queueSize = userQueueSize;
@@ -239,7 +239,7 @@ void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMes
     }
 }
 
-void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLength, size_t taskStackSize = 6048, UBaseType_t taskPriority = 5)
+void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLength, size_t taskStackSize = 6048, int taskPriority = 5)
 {
     debugEnabledSerial2 = debugSerial;
     queue2Size = queueSize;
