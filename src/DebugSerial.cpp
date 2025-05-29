@@ -18,6 +18,139 @@ struct DebugMessage
     size_t size;           // Tamanho dos dados binários
 };
 
+// Fila para armazenar os dados recebidos da Serial2
+static QueueHandle_t serial2ReceptionQueue;
+static QueueHandle_t serialRecebmentoSerial1;
+
+// Função de tarefa para processar dados da Serial2
+void serial2ReceptionTask(void *pvParameters)
+{
+    static bool inSync = false;
+    static uint8_t buffer[130]; // Tamanho máximo de dados recebidos ja que statusDeste tem 122 bytes
+    static size_t bytesReceived = 0;
+
+    while (true)
+    {
+        while (Serial2.available() > 0)
+        {
+            uint8_t byte = Serial2.read();
+
+            if (byte == 0x7E) // Marcador de início
+            {
+                inSync = true;
+                bytesReceived = 0;
+                dlog("Marcador de início detectado.");
+                continue;
+            }
+
+            if (inSync)
+            {
+                if (byte == 0x7F) // Marcador de fim
+                {
+                    if (bytesReceived >= 122) // Tamanho lido do struct statusDeste 28/01/2025
+                    {
+                        // Enviar os dados para a fila
+                        if (xQueueSendToBack(serial2ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
+                        {
+                            dlog("Fila Serial2 ; DESCARTADA ; Tamanho: %zu bytes", bytesReceived);
+                        }
+                        else
+                        {
+                            dlog("Fila Serial2 ; ARMAZENADA ; Tamanho: %zu bytes", bytesReceived);
+                        }
+                        memset(buffer, 0, sizeof(buffer));
+                        bytesReceived = 0;
+                    }
+                    else
+                    {
+                        dlog("Nenhum dado recebido antes do marcador de fim.");
+                    }
+                    inSync = false;
+                    continue;
+                }
+
+                // Gravar o byte no buffer se não for o terminador
+                if (bytesReceived < sizeof(buffer))
+                {
+                    buffer[bytesReceived++] = byte;
+                }
+                else
+                {
+                    dlog("Erro: Buffer cheio antes do marcador de fim.");
+                    inSync = false;
+                }
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+bool getSerialData(char *buffer, size_t bufferSize)
+{
+    return xQueueReceive(serialRecebmentoSerial1, buffer, 0) == pdPASS;
+}
+
+void serialReceptionTask(void *pvParameters)
+{
+    static char receivedData[128];
+    static size_t index = 0;
+    while (true)
+    {
+        while (Serial.available() > 0)
+        {
+            char c = Serial.read();
+            if (c == '\n' || index >= sizeof(receivedData) - 1) // Fim da linha ou buffer cheio
+            {
+                receivedData[index] = '\0';
+                xQueueSend(serialRecebmentoSerial1, receivedData, portMAX_DELAY);
+                index = 0;
+            }
+            else
+            {
+                receivedData[index++] = c;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+void initializeSerialReceptionTask()
+{    
+    serialRecebmentoSerial1 = xQueueCreate(1, sizeof(char) * 32);
+    xTaskCreate(serialReceptionTask, "SerialReceptionTask", 4096, NULL, 1, NULL);
+}
+
+// Inicializa a tarefa de recepção da Serial2
+void initializeSerial2ReceptionTask(size_t queueSize, size_t bufferSize)
+{
+    serial2ReceptionQueue = xQueueCreate(queueSize, bufferSize);
+    if (serial2ReceptionQueue == NULL)
+    {
+        dlog2("Erro ao criar fila para recepção da Serial2.");
+        return;
+    }
+
+    // Criar a tarefa de recepção
+    xTaskCreate(serial2ReceptionTask, "Serial2ReceptionTask", 4096, NULL, 1, NULL);
+    dlog2("Tarefa de recepção da Serial2 inicializada.");
+}
+
+// Obtém dados estruturados da fila de recepção
+bool getSerial2Struct(void *data, size_t dataSize, TickType_t timeout)
+{
+    if (serial2ReceptionQueue == NULL)
+        return false;
+
+    uint8_t buffer[dataSize];
+    if (xQueueReceive(serial2ReceptionQueue, buffer, timeout) == pdPASS)
+    {
+        memcpy(data, buffer, dataSize);
+        return true;
+    }
+
+    return false;
+}
+
 static void serialTask(void *pvParameters)
 {
     DebugMessage debugMessage;
@@ -28,19 +161,18 @@ static void serialTask(void *pvParameters)
         {
             if (debugMessage.message != nullptr)
             {
-                unsigned long inicio = micros();
-                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
+                // unsigned long inicio = micros();
+                if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, "") == 0)
                 {
                     Serial.println();
                 }
                 else
                 {
                     Serial.print(debugMessage.message);
-                    unsigned long fim = micros();
-                    unsigned long tempoGasto = fim - inicio;
-                    size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
-
-                    Serial.printf(";%lu;µs;%d;filaUART\n", tempoGasto, mensagensPendentes);
+                    // unsigned long fim = micros();
+                    // unsigned long tempoGasto = fim - inicio;
+                    // size_t mensagensPendentes = uxQueueMessagesWaiting(serialQueue);
+                    Serial.println();
                 }
 
                 delete[] debugMessage.message;
@@ -147,8 +279,17 @@ void dlog(const char *format, ...)
     }
 
     char caller[16];
-    strncpy(caller, taskName, 15);
-    caller[15] = '\0';
+    strncpy(caller, taskName, 15); // Copia até 15 caracteres de taskName
+    caller[15] = '\0';             // Garante que o último caractere seja o terminador de string
+
+    // Se taskName tiver menos que 15 caracteres, preenche o restante com espaços
+    if (strlen(taskName) < 15)
+    {
+        for (int i = strlen(taskName); i < 15; i++)
+        {
+            caller[i] = ' '; // Preenche com espaço
+        }
+    }
 
     unsigned long timestamp = micros();
 
@@ -202,14 +343,12 @@ void dlog2(const char *format, ...)
         return;
     }
 
-    // Obter o nome da tarefa atual
     const char *taskName = pcTaskGetName(NULL);
     if (taskName == nullptr)
     {
         taskName = "Unknown";
     }
 
-    // Limitar o nome da tarefa a 15 caracteres
     char caller[16];
     strncpy(caller, taskName, 15);
     caller[15] = '\0';
@@ -240,6 +379,11 @@ void dlog2(const char *format, ...)
             Serial2.println("Fila de debug Serial2 cheia. Mensagem descartada.");
             delete[] debugMessage.message;
         }
+    }
+    else
+    {
+        Serial2.println("Fila de debug Serial2 não inicializada. Mensagem descartada.");
+        delete[] debugMessage.message; // Garantir que a memória é liberada.
     }
 }
 
