@@ -235,7 +235,7 @@ void initializeDebugSerial(int debugSerial, size_t userQueueSize, size_t userMes
             return;
         }
         xTaskCreate(serialTask, "SerialTask", 5048, NULL, 1, NULL);
-        Serial.println("Debug Serial inicializado.");
+        dlog("Debug Serial inicializado.");
     }
 }
 
@@ -250,11 +250,11 @@ void initializeDebugSerial2(int debugSerial, size_t queueSize, size_t messageLen
         serial2Queue = xQueueCreate(queueSize, sizeof(DebugMessage));
         if (serial2Queue == NULL)
         {
-            Serial.println("Erro ao criar fila para Serial2.");
+            dlog("Erro ao criar fila para Serial2.");
             return;
         }
         xTaskCreate(serial2Task, "Serial2Task", 5048, NULL, 1, NULL);
-        Serial2.println("Debug Serial2 inicializado.");
+        dlog("Debug Serial2 inicializado.");
     }
 }
 
@@ -268,7 +268,7 @@ void dlog(const char *format, ...)
 
     if (debugMessage.message == nullptr)
     {
-        Serial.println("Erro ao alocar memória para mensagem de log.");
+        //Serial.println("Erro ao alocar memória para mensagem de log.");
         return;
     }
 
