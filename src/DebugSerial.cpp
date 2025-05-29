@@ -203,14 +203,14 @@ static void serial2Task(void *pvParameters)
                         unsigned long inicio = micros();
                         if (strlen(debugMessage.message) == 0 || strcmp(debugMessage.message, " ") == 0)
                         {
-                            Serial2.println();
+                            //Serial2.println();
                         }
                         else
                         {
-                            Serial2.print(debugMessage.message);
+                            //Serial2.print(debugMessage.message);
                         }
                         unsigned long fim = micros();
-                        Serial2.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
+                        //Serial2.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
                     }
 
                     delete[] debugMessage.message;
