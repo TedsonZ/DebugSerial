@@ -10,22 +10,30 @@
 #define DEFAULT_DEBUG_SERIAL 1
 #define DEFAULT_DEBUG_SERIAL_QUEUE_SIZE 10
 #define DEFAULT_DEBUG_SERIAL_MESSAGE_MAX_LENGTH 128
+#define DEFAULT_DEBUG_SERIAL_TASK_STACK_SIZE 6048
+#define DEFAULT_DEBUG_SERIAL_TASK_PRIORITY 1
 
 // Configurações padrão da biblioteca para Serial2
 #define DEFAULT_DEBUG_SERIAL2 1
 #define DEFAULT_DEBUG_SERIAL2_QUEUE_SIZE 15
 #define DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH 256
+#define DEFAULT_DEBUG_SERIAL2_TASK_STACK_SIZE 6048
+#define DEFAULT_DEBUG_SERIAL2_TASK_PRIORITY 5
 
 // Funções de inicialização
 void initializeDebugSerial(
     int debugSerial = DEFAULT_DEBUG_SERIAL,
     size_t queueSize = DEFAULT_DEBUG_SERIAL_QUEUE_SIZE,
-    size_t messageLength = DEFAULT_DEBUG_SERIAL_MESSAGE_MAX_LENGTH);
+    size_t messageLength = DEFAULT_DEBUG_SERIAL_MESSAGE_MAX_LENGTH,
+    size_t taskStackSize = DEFAULT_DEBUG_SERIAL_TASK_STACK_SIZE,
+    UBaseType_t taskPriority = DEFAULT_DEBUG_SERIAL_TASK_PRIORITY);
 
 void initializeDebugSerial2(
     int debugSerial2 = DEFAULT_DEBUG_SERIAL2,
     size_t queueSize = DEFAULT_DEBUG_SERIAL2_QUEUE_SIZE,
-    size_t messageLength = DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH);
+    size_t messageLength = DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH,
+    size_t taskStackSize = DEFAULT_DEBUG_SERIAL2_TASK_STACK_SIZE,
+    UBaseType_t taskPriority = DEFAULT_DEBUG_SERIAL2_TASK_PRIORITY);
 
 // Funções de log para Serial1
 void dlog(const char *format, ...);
