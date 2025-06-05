@@ -6,6 +6,10 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+extern QueueHandle_t serial0ReceptionQueue;
+extern QueueHandle_t serial1ReceptionQueue;
+extern QueueHandle_t serial2ReceptionQueue;
+
 // Configurações padrão da biblioteca para Serial
 #define DEFAULT_DEBUG_SERIAL 1
 #define DEFAULT_DEBUG_SERIAL_QUEUE_SIZE 10
