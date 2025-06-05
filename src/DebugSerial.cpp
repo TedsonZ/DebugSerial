@@ -32,7 +32,7 @@ QueueHandle_t serial2ReceptionQueue;
 void serial1ReceptionTask(void *pvParameters)
 {
     static bool inSync = false;
-    static uint8_t buffer[130]; // Tamanho máximo de dados recebidos ja que statusDeste tem 122 bytes
+    static uint8_t buffer[130]; // Tamanho máximo baseado no struct
     static size_t bytesReceived = 0;
 
     while (true)
@@ -45,7 +45,7 @@ void serial1ReceptionTask(void *pvParameters)
             {
                 inSync = true;
                 bytesReceived = 0;
-                dlog("Marcador de início detectado.");
+                dlog("Serial1: Marcador de início detectado.");
                 continue;
             }
 
@@ -53,30 +53,44 @@ void serial1ReceptionTask(void *pvParameters)
             {
                 if (byte == 0x7F) // Marcador de fim
                 {
-                    if (bytesReceived >= 122) // Tamanho lido do struct statusDeste 28/01/2025
+                    if (bytesReceived >= 122) // Supondo struct com 122 bytes
                     {
-                        // Enviar os dados para a fila
-                        DebugMessage message;
-                        message.message = (char *)buffer;
-                        message.size = bytesReceived;
-                        message.isBinary = true;
-                        xQueueSend(serial1ReceptionQueue, &message, 0);
+                        // Enviar cópia dos dados para a fila
+                        if (xQueueSendToBack(serial1ReceptionQueue, buffer, pdMS_TO_TICKS(100)) != pdPASS)
+                        {
+                            dlog("Fila Serial1 ; DESCARTADA ; Tamanho: %zu bytes", bytesReceived);
+                        }
+                        else
+                        {
+                            dlog("Fila Serial1 ; ARMAZENADA ; Tamanho: %zu bytes", bytesReceived);
+                        }
+                        memset(buffer, 0, sizeof(buffer));
+                        bytesReceived = 0;
                     }
-
+                    else
+                    {
+                        dlog("Serial1: Dados insuficientes antes do marcador de fim.");
+                    }
                     inSync = false;
-                    bytesReceived = 0;
-                    dlog("Marcador de fim detectado.");
+                    continue;
+                }
+
+                if (bytesReceived < sizeof(buffer))
+                {
+                    buffer[bytesReceived++] = byte;
                 }
                 else
                 {
-                    buffer[bytesReceived] = byte;
-                    bytesReceived++;
+                    dlog("Serial1: Erro - Buffer cheio antes do fim.");
+                    inSync = false;
                 }
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(10)); // 10 ms de atraso
+
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
+
 
 // Função de tarefa para processar dados da Serial2
 void serial2ReceptionTask(void *pvParameters)
