@@ -6,10 +6,15 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
-// Configurações padrão da biblioteca para Serial1
+// Configurações padrão da biblioteca para Serial
 #define DEFAULT_DEBUG_SERIAL 1
 #define DEFAULT_DEBUG_SERIAL_QUEUE_SIZE 10
 #define DEFAULT_DEBUG_SERIAL_MESSAGE_MAX_LENGTH 128
+
+// Configurações padrão da biblioteca para Serial1
+#define DEFAULT_DEBUG_SERIAL1 1
+#define DEFAULT_DEBUG_SERIAL1_QUEUE_SIZE 15
+#define DEFAULT_DEBUG_SERIAL1_MESSAGE_MAX_LENGTH 256
 
 // Configurações padrão da biblioteca para Serial2
 #define DEFAULT_DEBUG_SERIAL2 1
@@ -22,12 +27,17 @@ void initializeDebugSerial(
     size_t queueSize = DEFAULT_DEBUG_SERIAL_QUEUE_SIZE,
     size_t messageLength = DEFAULT_DEBUG_SERIAL_MESSAGE_MAX_LENGTH);
 
+void initializeDebugSerial1(
+    int debugSerial1 = DEFAULT_DEBUG_SERIAL1,
+    size_t queueSize = DEFAULT_DEBUG_SERIAL1_QUEUE_SIZE,
+    size_t messageLength = DEFAULT_DEBUG_SERIAL1_MESSAGE_MAX_LENGTH);
+
 void initializeDebugSerial2(
     int debugSerial2 = DEFAULT_DEBUG_SERIAL2,
     size_t queueSize = DEFAULT_DEBUG_SERIAL2_QUEUE_SIZE,
     size_t messageLength = DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH);
 
-// Funções de log para Serial1
+// Funções de log para Serial0
 void dlog(const char *format, ...);
 void dlog(int value);
 void dlog(unsigned int value);
@@ -39,6 +49,46 @@ void dlog(bool value);
 void dlog(char value);
 void dlog(float value, int decimalPlaces);
 void dlog(const String &value);
+
+//Funções de log para Serial1
+void dlog1(const char *format, ...);
+void dlog1(int value);
+void dlog1(unsigned int value);
+void dlog1(long value);
+void dlog1(unsigned long value);
+void dlog1(float value);
+void dlog1(double value);
+void dlog1(bool value);
+void dlog1(char value);
+void dlog1(float value, int decimalPlaces);
+void dlog1(const String &value);
+
+template <typename T1>
+void dlog1Struct(const T1 &data)
+{
+    if (!DEFAULT_DEBUG_SERIAL1)
+        return;
+
+    // Serializar a estrutura em um buffer de bytes
+    const size_t dataSize = sizeof(T1);
+    if (dataSize > DEFAULT_DEBUG_SERIAL1_MESSAGE_MAX_LENGTH)
+    {
+        Serial1.println("Erro: Tamanho da estrutura excede o limite de mensagem.");
+        return;
+    }
+
+    uint8_t buffer[dataSize + 2]; // Inclui espaço para header e terminador
+    buffer[0] = 0x7E; // Header (marcador de início)
+    memcpy(&buffer[1], &data, dataSize);
+    buffer[dataSize + 1] = 0x7F; // Terminador (marcador de fim)
+
+    // Enviar os bytes pela Serial1
+    Serial1.write(buffer, dataSize + 2);
+}
+
+void initializeSerial1ReceptionTask(size_t queueSize, size_t bufferSize);
+bool getSerial1Struct(void *data, size_t dataSize, TickType_t timeout);
+void serial1ReceptionTask(void *pvParameters);
 
 // Funções de log para Serial2
 void dlog2(const char *format, ...);
@@ -54,14 +104,14 @@ void dlog2(float value, int decimalPlaces);
 void dlog2(const String &value);
 void dlog2Binary(const void *data, size_t dataSize);
 
-template <typename T>
-void dlog2Struct(const T &data)
+template <typename T2>
+void dlog2Struct(const T2 &data)
 {
     if (!DEFAULT_DEBUG_SERIAL2)
         return;
 
     // Serializar a estrutura em um buffer de bytes
-    const size_t dataSize = sizeof(T);
+    const size_t dataSize = sizeof(T2);
     if (dataSize > DEFAULT_DEBUG_SERIAL2_MESSAGE_MAX_LENGTH)
     {
         Serial2.println("Erro: Tamanho da estrutura excede o limite de mensagem.");
