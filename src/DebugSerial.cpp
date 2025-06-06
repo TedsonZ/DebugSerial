@@ -187,7 +187,7 @@ void serialReceptionTask(void *pvParameters)
 void initializeSerialReceptionTask()
 {
     serial0ReceptionQueue = xQueueCreate(1, sizeof(char) * 32);
-    xTaskCreate(serialReceptionTask, "SerialReceptionTask", 4096, NULL, 1, NULL);
+    xTaskCreate(serialReceptionTask, "SerialReceptionTask", 6096, NULL, 1, NULL);
 }
 
 // Inicializa a tarefa de recepção da Serial1
@@ -201,7 +201,7 @@ void initializeSerial1ReceptionTask(size_t queueSize, size_t bufferSize)
     }
 
     // Criar a tarefa de recepção
-    xTaskCreate(serial1ReceptionTask, "Serial1ReceptionTask", 4096, NULL, 1, NULL);
+    xTaskCreate(serial1ReceptionTask, "Serial1ReceptionTask", 6096, NULL, 1, NULL);
     dlog("Tarefa de recepção da Serial1 inicializada.");
 }
 
@@ -216,7 +216,7 @@ void initializeSerial2ReceptionTask(size_t queueSize, size_t bufferSize)
     }
 
     // Criar a tarefa de recepção
-    xTaskCreate(serial2ReceptionTask, "Serial2ReceptionTask", 4096, NULL, 1, NULL);
+    xTaskCreate(serial2ReceptionTask, "Serial2ReceptionTask", 6096, NULL, 1, NULL);
     dlog("Tarefa de recepção da Serial2 inicializada.");
 }
 
@@ -304,7 +304,7 @@ static void serial1Task(void *pvParameters)
                         Serial1.print(debugMessage.message);
                     }
                     unsigned long fim = micros();
-                    Serial1.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial1Queue));
+                    dlog(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial1Queue));
                 }
 
                 delete[] debugMessage.message;
@@ -352,7 +352,7 @@ static void serial2Task(void *pvParameters)
                             Serial2.print(debugMessage.message);
                         }
                         unsigned long fim = micros();
-                        Serial2.printf(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
+                        dlog(" [%lu µs | Pendentes: %d]\n", fim - inicio, uxQueueMessagesWaiting(serial2Queue));
                     }
 
                     delete[] debugMessage.message;
