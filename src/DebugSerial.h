@@ -90,7 +90,7 @@ void dlog1Struct(const T1 &data)
     Serial1.write(buffer, dataSize + 2);
 }
 
-void initializeSerial1ReceptionTask(size_t queueSize, size_t bufferSize);
+void initializeSerial1ReceptionTask(size_t queueSize, size_t bufferSize, TaskHandle_t* outHandle = nullptr);
 bool getSerial1Struct(void *data, size_t dataSize, TickType_t timeout);
 void serial1ReceptionTask(void *pvParameters);
 
@@ -131,7 +131,7 @@ void dlog2Struct(const T2 &data)
     Serial2.write(buffer, dataSize + 2);
 }
 // Inicialização da tarefa de recepção da Serial2
-void initializeSerial2ReceptionTask(size_t queueSize, size_t bufferSize);
+void initializeSerial2ReceptionTask(size_t queueSize, size_t bufferSize, TaskHandle_t* outHandle = nullptr);
 
 // Função para obter dados da fila de recepção
 bool getSerial2Struct(void *data, size_t dataSize, TickType_t timeout);
