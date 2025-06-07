@@ -190,6 +190,26 @@ void initializeSerialReceptionTask()
     xTaskCreate(serialReceptionTask, "SerialReceptionTask", 6096, NULL, 1, NULL);
 }
 
+void initializeSerial1ReceptionTask(size_t queueSize, size_t bufferSize, TaskHandle_t* outHandle)
+{
+    serial1ReceptionQueue = xQueueCreate(queueSize, bufferSize);
+    if (serial1ReceptionQueue == NULL)
+    {
+        dlog("Erro ao criar fila para recepção da Serial1.");
+        return;
+    }
+
+    TaskHandle_t tempHandle = NULL;
+    xTaskCreate(serial1ReceptionTask, "Serial1ReceptionTask", 6096, NULL, 1, &tempHandle);
+    
+    if (outHandle != nullptr)
+    {
+        *outHandle = tempHandle;
+    }
+
+    dlog("Tarefa de recepção da Serial1 inicializada.");
+}
+
 // Inicializa a tarefa de recepção da Serial2
 void initializeSerial2ReceptionTask(size_t queueSize, size_t bufferSize, TaskHandle_t* outHandle)
 {
